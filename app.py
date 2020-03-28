@@ -16,31 +16,45 @@ def change():
         if request.method== 'POST':
             country = request.form['country']
 
-            if country.lower() == 'usa' or country.lower()=='america':
-                country = 'us'
+            if country.lower() == 'us' or country.lower()=='america':
+                country = 'usa'
         else:
             country = 'india'
 
-        my_link = requests.get('https://www.worldometers.info/coronavirus/country/'+country)
+        my_link = requests.get('https://www.worldometers.info/coronavirus/#countries')
         soup = BeautifulSoup(my_link.text,'html.parser')
+        table = soup.find('tbody')
+        rows = table.find_all('tr')
+        d = []
+        for i in rows:
+            data = i.find_all('td')
+            temp = []
+            for j in data:
+                temp.append(j.text)
+            d.append(temp)
+        flag = False
+        for i in d:
+            if i[0].upper()==country.upper():
+                country = i[0]
+                total = i[1]
+                active = i[6]
+                deaths = i[3]
+                cured = i[5]
+                flag =True
+                break
+        if flag:
+            return render_template('base.html',total=total,deaths=deaths,cured=cured,active=active,country=country.capitalize())
 
+        else:
+            flash("Sorry data does not exist for this country right now please try again later...")
+            return redirect(url_for('change'))
 
-        deaths = soup.find_all('div',{'class':'maincounter-number'})
-
-        active = soup.find_all('div',{'class':'number-table-main'})[0].text
-
-        stats = []
-
-        for i in deaths:
-            stats.append(i.text.replace('\n','').replace(' ',''))
-        total,deaths,cured = stats[0],stats[1],stats[2]
     except:
         flash("Sorry data does not exist for this country right now please try again later...")
         return redirect(url_for('change'))
 
 
 
-    return render_template('base.html',total=total,deaths=deaths,cured=cured,active=active,country=country.capitalize())
 
 if __name__ == '__main__':
     app.run(debug=True)
